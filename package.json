@@ -1,0 +1,14 @@
+{
+    "name": "price-tracker",
+    "version": "1.0.0",
+    "description": "Price tracking application with backend and frontend",
+    "main": "backend/src/server.js",
+    "scripts": {
+        "start": "cd backend && npm install && npm start",
+        "build": "cd backend && npm install",
+        "dev": "cd backend && npm run dev"
+    },
+    "engines": {
+        "node": ">=14.0.0"
+    }
+}
