@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import axios from '../config/axios';
 import { toast } from 'react-toastify';
-import { BellIcon, BellSlashIcon } from '@heroicons/react/24/outline';
+import { BellIcon, BellSlashIcon, PencilIcon } from '@heroicons/react/24/outline';
 
 function AlertList() {
     const [alerts, setAlerts] = useState([]);
@@ -18,6 +18,7 @@ function AlertList() {
         maxPrice: '',
         notificationType: 'email',
     });
+    const [editingAlert, setEditingAlert] = useState(null);
 
     useEffect(() => {
         const token = localStorage.getItem('token');
@@ -111,24 +112,53 @@ function AlertList() {
                 throw new Error('No product selected');
             }
 
-            const { data } = await axios.post('/api/alerts', formData);
-            setAlerts([...alerts, data]);
+            let data;
+            if (editingAlert) {
+                // Update existing alert
+                data = await axios.patch(`/api/alerts/${editingAlert._id}`, {
+                    minPrice: formData.minPrice,
+                    maxPrice: formData.maxPrice,
+                    notificationType: formData.notificationType,
+                });
+                setAlerts(alerts.map(alert =>
+                    alert._id === editingAlert._id ? data.data : alert
+                ));
+                toast.success('Alert updated successfully');
+            } else {
+                // Create new alert
+                data = await axios.post('/api/alerts', formData);
+                setAlerts([...alerts, data.data]);
+                toast.success('Alert created successfully');
+            }
+
             setShowForm(false);
+            setEditingAlert(null);
             setFormData({
                 productId: '',
                 minPrice: '',
                 maxPrice: '',
                 notificationType: 'email',
             });
-            toast.success('Alert created successfully');
             navigate('/alerts');
         } catch (error) {
-            console.error('Error creating alert:', error);
+            console.error('Error saving alert:', error);
             const errorMessage = error.response?.data?.message || error.message;
-            toast.error(`Failed to create alert: ${errorMessage}`);
+            toast.error(`Failed to ${editingAlert ? 'update' : 'create'} alert: ${errorMessage}`);
         } finally {
             setLoading(false);
         }
+    };
+
+    const startEditingAlert = (alert) => {
+        setEditingAlert(alert);
+        setFormData({
+            productId: alert.product._id,
+            minPrice: alert.minPrice,
+            maxPrice: alert.maxPrice,
+            notificationType: alert.notificationType,
+        });
+        setProduct(alert.product);
+        setShowForm(true);
     };
 
     const toggleAlertStatus = async (alertId, currentStatus) => {
@@ -189,7 +219,12 @@ function AlertList() {
             {showForm && (
                 <div className="card mb-6">
                     <h2 className="text-lg font-semibold mb-4">
-                        {product ? `Create Alert for ${product.name}` : 'Create New Alert'}
+                        {editingAlert
+                            ? `Edit Alert for ${product.name}`
+                            : product
+                                ? `Create Alert for ${product.name}`
+                                : 'Create New Alert'
+                        }
                     </h2>
 
                     {!formData.productId && (
@@ -303,9 +338,9 @@ function AlertList() {
                                 <button
                                     type="submit"
                                     className="btn-primary flex-1"
-                                    disabled={loading || !product}
+                                    disabled={loading || (!editingAlert && !product)}
                                 >
-                                    {loading ? 'Creating Alert...' : 'Create Alert'}
+                                    {loading ? 'Saving...' : editingAlert ? 'Update Alert' : 'Create Alert'}
                                 </button>
                                 <button
                                     type="button"
@@ -313,6 +348,7 @@ function AlertList() {
                                     onClick={() => {
                                         setShowForm(false);
                                         setProduct(null);
+                                        setEditingAlert(null);
                                         setFormData({
                                             productId: '',
                                             minPrice: '',
@@ -346,6 +382,13 @@ function AlertList() {
                                 </div>
 
                                 <div className="flex items-center space-x-3">
+                                    <button
+                                        onClick={() => startEditingAlert(alert)}
+                                        className="p-2 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200"
+                                        title="Edit Alert"
+                                    >
+                                        <PencilIcon className="h-5 w-5" />
+                                    </button>
                                     <button
                                         onClick={() => toggleAlertStatus(alert._id, alert.isActive)}
                                         className={`p-2 rounded-full ${alert.isActive ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-600'}`}
