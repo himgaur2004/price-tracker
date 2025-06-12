@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import axios from 'axios';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import axios from '../config/axios';
 import { toast } from 'react-toastify';
 import { BellIcon, BellSlashIcon } from '@heroicons/react/24/outline';
 
@@ -9,6 +9,8 @@ function AlertList() {
     const [loading, setLoading] = useState(true);
     const [searchParams] = useSearchParams();
     const [showForm, setShowForm] = useState(!!searchParams.get('productId'));
+    const [product, setProduct] = useState(null);
+    const navigate = useNavigate();
     const [formData, setFormData] = useState({
         productId: searchParams.get('productId') || '',
         minPrice: '',
@@ -17,15 +19,48 @@ function AlertList() {
     });
 
     useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            navigate('/login');
+            toast.error('Please login to view alerts');
+            return;
+        }
+
         fetchAlerts();
-    }, []);
+        if (formData.productId) {
+            fetchProductDetails();
+        }
+    }, [formData.productId]);
+
+    const fetchProductDetails = async () => {
+        try {
+            const { data } = await axios.get(`/api/products/${formData.productId}`);
+            setProduct(data);
+            // Set initial price range based on current price
+            if (data.currentPrice && !formData.minPrice && !formData.maxPrice) {
+                setFormData(prev => ({
+                    ...prev,
+                    minPrice: (data.currentPrice * 0.9).toFixed(2), // 10% below current price
+                    maxPrice: (data.currentPrice * 1.1).toFixed(2), // 10% above current price
+                }));
+            }
+        } catch (error) {
+            console.error('Error fetching product:', error);
+            toast.error('Failed to load product details');
+        }
+    };
 
     const fetchAlerts = async () => {
         try {
             const { data } = await axios.get('/api/alerts');
             setAlerts(data);
         } catch (error) {
-            toast.error('Failed to load alerts');
+            if (error.response?.status === 401) {
+                navigate('/login');
+                toast.error('Please login to view alerts');
+            } else {
+                toast.error('Failed to load alerts');
+            }
         } finally {
             setLoading(false);
         }
@@ -36,6 +71,10 @@ function AlertList() {
         setLoading(true);
 
         try {
+            if (!formData.productId) {
+                throw new Error('No product selected');
+            }
+
             const { data } = await axios.post('/api/alerts', formData);
             setAlerts([...alerts, data]);
             setShowForm(false);
@@ -46,8 +85,11 @@ function AlertList() {
                 notificationType: 'email',
             });
             toast.success('Alert created successfully');
+            navigate('/alerts');
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Failed to create alert');
+            console.error('Error creating alert:', error);
+            const errorMessage = error.response?.data?.message || error.message;
+            toast.error(`Failed to create alert: ${errorMessage}`);
         } finally {
             setLoading(false);
         }
@@ -98,18 +140,30 @@ function AlertList() {
         <div>
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold">Price Alerts</h1>
-                <button
-                    onClick={() => setShowForm(!showForm)}
-                    className="btn-primary"
-                >
-                    {showForm ? 'Cancel' : 'Create Alert'}
-                </button>
+                {!showForm && (
+                    <button
+                        onClick={() => setShowForm(true)}
+                        className="btn-primary"
+                    >
+                        Create Alert
+                    </button>
+                )}
             </div>
 
             {showForm && (
                 <div className="card mb-6">
-                    <h2 className="text-lg font-semibold mb-4">Create New Alert</h2>
+                    <h2 className="text-lg font-semibold mb-4">
+                        {product ? `Create Alert for ${product.name}` : 'Create New Alert'}
+                    </h2>
                     <form onSubmit={handleSubmit} className="space-y-4">
+                        {product && (
+                            <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+                                <p className="font-medium">{product.name}</p>
+                                <p className="text-sm text-gray-600">Current Price: ${product.currentPrice}</p>
+                                <p className="text-sm text-gray-600">Website: {product.website}</p>
+                            </div>
+                        )}
+
                         <div>
                             <label htmlFor="minPrice" className="block text-sm font-medium text-gray-700 mb-1">
                                 Minimum Price ($)
@@ -158,9 +212,25 @@ function AlertList() {
                             </select>
                         </div>
 
-                        <button type="submit" className="btn-primary w-full" disabled={loading}>
-                            Create Alert
-                        </button>
+                        <div className="flex space-x-4">
+                            <button
+                                type="submit"
+                                className="btn-primary flex-1"
+                                disabled={loading}
+                            >
+                                {loading ? 'Creating Alert...' : 'Create Alert'}
+                            </button>
+                            <button
+                                type="button"
+                                className="btn-secondary"
+                                onClick={() => {
+                                    setShowForm(false);
+                                    navigate('/alerts');
+                                }}
+                            >
+                                Cancel
+                            </button>
+                        </div>
                     </form>
                 </div>
             )}
@@ -183,8 +253,8 @@ function AlertList() {
                                 <div className="flex items-center space-x-3">
                                     <button
                                         onClick={() => toggleAlertStatus(alert._id, alert.isActive)}
-                                        className={`p-2 rounded-full ${alert.isActive ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-600'
-                                            }`}
+                                        className={`p-2 rounded-full ${alert.isActive ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-600'}`}
+                                        title={alert.isActive ? 'Disable Alert' : 'Enable Alert'}
                                     >
                                         {alert.isActive ? (
                                             <BellIcon className="h-5 w-5" />
@@ -200,21 +270,18 @@ function AlertList() {
                                     </button>
                                 </div>
                             </div>
-
-                            {alert.lastNotified && (
-                                <p className="text-sm text-gray-500 mt-2">
-                                    Last notification: {new Date(alert.lastNotified).toLocaleString()}
-                                </p>
-                            )}
                         </div>
                     ))}
                 </div>
             ) : (
                 <div className="text-center py-12">
                     <p className="text-gray-600 mb-4">No price alerts set</p>
-                    <Link to="/products" className="btn-primary">
-                        Browse Products
-                    </Link>
+                    <button
+                        onClick={() => setShowForm(true)}
+                        className="btn-primary"
+                    >
+                        Create Your First Alert
+                    </button>
                 </div>
             )}
         </div>

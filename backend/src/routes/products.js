@@ -122,6 +122,24 @@ router.get('/', auth, async (req, res) => {
     }
 });
 
+// Get a single product
+router.get('/:id', auth, async (req, res) => {
+    try {
+        const product = await Product.findOne({
+            _id: req.params.id,
+            createdBy: req.user.userId
+        });
+
+        if (!product) {
+            return res.status(404).json({ message: 'Product not found' });
+        }
+
+        res.json(product);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching product', error: error.message });
+    }
+});
+
 // Add a new product
 router.post('/', auth, async (req, res) => {
     console.log('Received product creation request:', {
