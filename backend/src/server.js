@@ -16,7 +16,8 @@ app.get('/', (req, res) => {
     res.status(200).json({
         status: 'ok',
         message: 'Price Tracker API is running',
-        version: '1.0.0'
+        version: '1.0.0',
+        mongoStatus: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
     });
 });
 
@@ -33,11 +34,17 @@ app.get('/health', (req, res) => {
 const connectDB = async (retries = 5) => {
     for (let i = 0; i < retries; i++) {
         try {
-            await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/buy-more', {
+            const mongoURI = process.env.MONGODB_URI;
+            if (!mongoURI) {
+                throw new Error('MONGODB_URI environment variable is not set');
+            }
+            console.log('Attempting to connect to MongoDB...');
+            await mongoose.connect(mongoURI, {
                 useNewUrlParser: true,
                 useUnifiedTopology: true,
+                serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
             });
-            console.log('Connected to MongoDB');
+            console.log('Connected to MongoDB successfully');
             return;
         } catch (err) {
             console.error(`MongoDB connection attempt ${i + 1} failed:`, err.message);
@@ -51,7 +58,8 @@ const connectDB = async (retries = 5) => {
 // Connect to MongoDB
 connectDB().catch(err => {
     console.error('Failed to connect to MongoDB:', err);
-    process.exit(1);
+    // Don't exit the process, let the API run without DB connection
+    // process.exit(1);
 });
 
 // Routes
