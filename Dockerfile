@@ -1,19 +1,34 @@
-FROM node:18-alpine
+# Build stage
+FROM node:18-alpine AS builder
 
-WORKDIR /app
+# Set working directory
+WORKDIR /build
 
-# Copy only the backend directory
-COPY backend ./
+# Copy package files
+COPY backend/package*.json ./
 
 # Install dependencies
-RUN cd /app && npm install --production
+RUN npm install --production
+
+# Copy source code
+COPY backend/src ./src
+
+# Production stage
+FROM node:18-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Copy built files from builder
+COPY --from=builder /build/node_modules ./node_modules
+COPY --from=builder /build/src ./src
 
 # Set environment variables
 ENV NODE_ENV=production
 ENV PORT=5050
 
-# Expose the port
+# Expose port
 EXPOSE 5050
 
-# Start the application
+# Start command
 CMD ["node", "src/server.js"] 
