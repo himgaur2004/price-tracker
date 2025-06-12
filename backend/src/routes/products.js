@@ -10,7 +10,7 @@ const router = express.Router();
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 // Helper function to extract price from websites
-async function extractPrice(url, retries = 3) {
+async function extractPrice(url, website, retries = 3) {
     const headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
@@ -26,13 +26,14 @@ async function extractPrice(url, retries = 3) {
             const $ = cheerio.load(response.data);
 
             let price = null;
-            if (url.includes('amazon')) {
+            if (website === 'amazon') {
                 // Try multiple Amazon price selectors
                 const selectors = [
                     '#priceblock_ourprice',
                     '.a-price-whole',
                     '#price_inside_buybox',
-                    '#newBuyBoxPrice'
+                    '#newBuyBoxPrice',
+                    '.a-offscreen'
                 ];
 
                 for (const selector of selectors) {
@@ -42,7 +43,7 @@ async function extractPrice(url, retries = 3) {
                         break;
                     }
                 }
-            } else if (url.includes('flipkart')) {
+            } else if (website === 'flipkart') {
                 // Try multiple Flipkart price selectors
                 const selectors = [
                     '._30jeq3._16Jk6d',
@@ -52,6 +53,24 @@ async function extractPrice(url, retries = 3) {
                     '._2YxCDZ'
                 ];
 
+                for (const selector of selectors) {
+                    const priceText = $(selector).first().text().trim();
+                    if (priceText) {
+                        price = priceText.replace(/[^0-9.]/g, '');
+                        break;
+                    }
+                }
+            } else if (website === 'reliance') {
+                const selectors = ['.pdp__price'];
+                for (const selector of selectors) {
+                    const priceText = $(selector).first().text().trim();
+                    if (priceText) {
+                        price = priceText.replace(/[^0-9.]/g, '');
+                        break;
+                    }
+                }
+            } else if (website === 'croma') {
+                const selectors = ['.price', '.pd-price'];
                 for (const selector of selectors) {
                     const priceText = $(selector).first().text().trim();
                     if (priceText) {
@@ -75,10 +94,10 @@ async function extractPrice(url, retries = 3) {
                 await delay(Math.pow(2, attempt) * 1000); // Exponential backoff
                 continue;
             }
-            return null;
+            throw new Error(`Failed to extract price after ${retries} attempts: ${error.message}`);
         }
     }
-    return null;
+    throw new Error('Could not extract price from the provided URL');
 }
 
 // Get lowest priced products
@@ -106,26 +125,51 @@ router.get('/', auth, async (req, res) => {
 // Add a new product
 router.post('/', auth, async (req, res) => {
     try {
-        const { name, url, website } = req.body;
-        const currentPrice = await extractPrice(url);
+        const { name, url, website, productIdentifier, category, brand } = req.body;
 
-        if (!currentPrice) {
-            return res.status(400).json({ message: 'Could not extract price from URL' });
+        // Validate required fields
+        if (!name || !url || !website || !productIdentifier) {
+            return res.status(400).json({
+                message: 'Missing required fields. Please provide name, url, website, and productIdentifier.'
+            });
         }
 
+        // Extract price from the URL
+        let currentPrice;
+        try {
+            currentPrice = await extractPrice(url, website);
+        } catch (error) {
+            console.error('Price extraction error:', error);
+            return res.status(400).json({
+                message: 'Could not extract price from URL. Please verify the URL and try again.',
+                error: error.message
+            });
+        }
+
+        // Create new product with all fields
         const product = new Product({
             name,
             url,
             website,
+            productIdentifier,
+            category,
+            brand,
             currentPrice,
             historicalPrices: [{ price: currentPrice }],
             createdBy: req.user.userId,
+            lowestPrice: currentPrice,
+            highestPrice: currentPrice,
+            lastChecked: new Date()
         });
 
         await product.save();
         res.status(201).json(product);
     } catch (error) {
-        res.status(500).json({ message: 'Error creating product', error: error.message });
+        console.error('Product creation error:', error);
+        res.status(500).json({
+            message: 'Error creating product',
+            error: error.message
+        });
     }
 });
 
@@ -133,7 +177,7 @@ router.post('/', auth, async (req, res) => {
 router.patch('/:id', auth, async (req, res) => {
     try {
         const updates = Object.keys(req.body);
-        const allowedUpdates = ['name', 'url', 'website'];
+        const allowedUpdates = ['name', 'url', 'website', 'productIdentifier', 'category', 'brand'];
         const isValidOperation = updates.every(update => allowedUpdates.includes(update));
 
         if (!isValidOperation) {
