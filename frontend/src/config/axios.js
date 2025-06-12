@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Set base URL for all API requests
-const baseURL = import.meta.env.VITE_API_URL || 'https://web-production-c7dc.up.railway.app';
+const baseURL = import.meta.env.VITE_API_URL || 'https://web-production-81e32.up.railway.app';
 axios.defaults.baseURL = baseURL;
 
 // Add request interceptor to include token
