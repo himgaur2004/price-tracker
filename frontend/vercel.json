@@ -5,7 +5,24 @@
             "destination": "/index.html"
         }
     ],
-    "buildCommand": "npm run build",
+    "buildCommand": "npm run vercel-build",
+    "devCommand": "npm run dev",
+    "installCommand": "npm install",
+    "framework": "vite",
     "outputDirectory": "dist",
-    "framework": "vite"
+    "headers": [
+        {
+            "source": "/api/(.*)",
+            "headers": [
+                {
+                    "key": "Access-Control-Allow-Origin",
+                    "value": "*"
+                }
+            ]
+        }
+    ],
+    "env": {
+        "VITE_API_URL": "https://web-production-81e32.up.railway.app",
+        "VITE_API_BASE_URL": "https://web-production-81e32.up.railway.app/api"
+    }
 }
