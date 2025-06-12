@@ -3,6 +3,7 @@ const auth = require('../middleware/auth');
 const Product = require('../models/Product');
 const cheerio = require('cheerio');
 const axios = require('axios');
+const { extractPrice } = require('../utils/priceExtractor');
 
 const router = express.Router();
 
@@ -137,6 +138,49 @@ router.get('/:id', auth, async (req, res) => {
         res.json(product);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching product', error: error.message });
+    }
+});
+
+// Compare prices across platforms
+router.get('/compare', auth, async (req, res) => {
+    try {
+        const { query } = req.query;
+        if (!query) {
+            return res.status(400).json({ message: 'Search query is required' });
+        }
+
+        // Create a case-insensitive regex for the search query
+        const searchRegex = new RegExp(query, 'i');
+
+        // Search for products across all platforms
+        const products = await Product.find({
+            $or: [
+                { name: searchRegex },
+                { brand: searchRegex },
+                { category: searchRegex }
+            ]
+        }).sort({ currentPrice: 1 });
+
+        // Group products by website
+        const groupedProducts = products.reduce((acc, product) => {
+            if (!acc[product.website]) {
+                acc[product.website] = [];
+            }
+            acc[product.website].push(product);
+            return acc;
+        }, {});
+
+        // For each website, get the lowest priced product
+        const lowestPrices = Object.values(groupedProducts).map(websiteProducts => {
+            return websiteProducts.reduce((lowest, current) => {
+                return (!lowest || current.currentPrice < lowest.currentPrice) ? current : lowest;
+            }, null);
+        }).filter(Boolean);
+
+        res.json(products);
+    } catch (error) {
+        console.error('Error comparing prices:', error);
+        res.status(500).json({ message: 'Error comparing prices', error: error.message });
     }
 });
 

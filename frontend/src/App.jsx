@@ -10,6 +10,7 @@ import AlertList from './components/AlertList';
 import UserSettings from './components/UserSettings';
 import LowestPriceProducts from './components/LowestPriceProducts';
 import { useAuth } from './hooks/useAuth';
+import PriceComparison from './components/PriceComparison';
 
 function App() {
     const { isAuthenticated } = useAuth();
@@ -27,6 +28,7 @@ function App() {
                     <Route path="/alerts" element={isAuthenticated ? <AlertList /> : <Navigate to="/login" />} />
                     <Route path="/settings" element={isAuthenticated ? <UserSettings /> : <Navigate to="/login" />} />
                     <Route path="/lowest-prices" element={<LowestPriceProducts />} />
+                    <Route path="/compare" element={<PriceComparison />} />
                     <Route path="/" element={<Navigate to="/lowest-prices" />} />
                 </Routes>
             </main>
