@@ -127,6 +127,5 @@ setInterval(checkPrices, 60 * 60 * 1000);
 checkPrices();
 
 module.exports = {
-    extractPrice,
     checkPrices
 }; 

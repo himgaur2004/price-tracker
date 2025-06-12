@@ -8,25 +8,24 @@ dotenv.config();
 const app = express();
 
 // CORS configuration
-app.use(cors({
-    origin: '*',  // Allow all origins in development
+const corsOptions = {
+    origin: [
+        'https://price-tracker-nine-mu.vercel.app',
+        'https://price-tracker-frontend.vercel.app',
+        'https://buy-more.vercel.app'
+    ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true
-}));
+    credentials: true,
+    maxAge: 86400 // 24 hours
+};
 
+app.use(cors(corsOptions));
 app.use(express.json());
 
-// Enhanced error logging middleware
+// Request logging middleware
 app.use((req, res, next) => {
-    const originalSend = res.send;
-    res.send = function (data) {
-        console.log(`${req.method} ${req.path} - Status: ${res.statusCode}`);
-        if (res.statusCode >= 400) {
-            console.error('Response Error:', data);
-        }
-        originalSend.call(this, data);
-    };
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
     next();
 });
 
@@ -60,14 +59,25 @@ app.use('/api/auth', authRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).json({ message: 'Something went wrong!', error: err.message });
+    console.error('Error:', err);
+    res.status(err.status || 500).json({
+        message: err.message || 'Something went wrong!',
+        error: process.env.NODE_ENV === 'development' ? err : {},
+        stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    });
 });
 
 // Initialize price checker service
 require('./services/priceChecker');
 
 const PORT = process.env.PORT || 5050;
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+    console.log('Received SIGTERM. Performing graceful shutdown...');
+    mongoose.connection.close();
+    process.exit(0);
+});
 
 console.log('Attempting to connect to MongoDB...');
 mongoose.connect(process.env.MONGODB_URI)
@@ -79,4 +89,5 @@ mongoose.connect(process.env.MONGODB_URI)
     })
     .catch((error) => {
         console.error('MongoDB connection error:', error);
+        process.exit(1);
     }); 
