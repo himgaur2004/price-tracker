@@ -10,6 +10,7 @@ function AlertList() {
     const [searchParams] = useSearchParams();
     const [showForm, setShowForm] = useState(!!searchParams.get('productId'));
     const [product, setProduct] = useState(null);
+    const [availableProducts, setAvailableProducts] = useState([]);
     const navigate = useNavigate();
     const [formData, setFormData] = useState({
         productId: searchParams.get('productId') || '',
@@ -27,10 +28,21 @@ function AlertList() {
         }
 
         fetchAlerts();
+        fetchAvailableProducts();
         if (formData.productId) {
             fetchProductDetails();
         }
     }, [formData.productId]);
+
+    const fetchAvailableProducts = async () => {
+        try {
+            const { data } = await axios.get('/api/products');
+            setAvailableProducts(data);
+        } catch (error) {
+            console.error('Error fetching products:', error);
+            toast.error('Failed to load available products');
+        }
+    };
 
     const fetchProductDetails = async () => {
         try {
@@ -179,6 +191,38 @@ function AlertList() {
                     <h2 className="text-lg font-semibold mb-4">
                         {product ? `Create Alert for ${product.name}` : 'Create New Alert'}
                     </h2>
+
+                    {!formData.productId && (
+                        <div className="mb-6">
+                            <label htmlFor="productSelect" className="block text-sm font-medium text-gray-700 mb-2">
+                                Select a Product
+                            </label>
+                            <select
+                                id="productSelect"
+                                className="input-field mb-2"
+                                value={formData.productId}
+                                onChange={(e) => {
+                                    setFormData(prev => ({
+                                        ...prev,
+                                        productId: e.target.value,
+                                        minPrice: '',
+                                        maxPrice: ''
+                                    }));
+                                }}
+                            >
+                                <option value="">Choose a product...</option>
+                                {availableProducts.map(prod => (
+                                    <option key={prod._id} value={prod._id}>
+                                        {prod.name} - ${prod.currentPrice} ({prod.website})
+                                    </option>
+                                ))}
+                            </select>
+                            <p className="text-sm text-gray-500">
+                                Select a product to set up price alerts for
+                            </p>
+                        </div>
+                    )}
+
                     {product && (
                         <div className="mb-6 p-4 bg-gray-50 rounded-lg">
                             <h3 className="font-medium text-lg mb-2">{product.name}</h3>
@@ -194,85 +238,95 @@ function AlertList() {
                             </div>
                         </div>
                     )}
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        <div>
-                            <label htmlFor="minPrice" className="block text-sm font-medium text-gray-700 mb-1">
-                                Minimum Price ($)
-                            </label>
-                            <input
-                                type="number"
-                                id="minPrice"
-                                value={formData.minPrice}
-                                onChange={(e) => setFormData({ ...formData, minPrice: e.target.value })}
-                                className="input-field"
-                                required
-                                min="0"
-                                step="0.01"
-                            />
-                            {product && (
-                                <p className="text-sm text-gray-500 mt-1">
-                                    Suggested: ${(product.currentPrice * 0.9).toFixed(2)} (10% below current price)
-                                </p>
-                            )}
-                        </div>
 
-                        <div>
-                            <label htmlFor="maxPrice" className="block text-sm font-medium text-gray-700 mb-1">
-                                Maximum Price ($)
-                            </label>
-                            <input
-                                type="number"
-                                id="maxPrice"
-                                value={formData.maxPrice}
-                                onChange={(e) => setFormData({ ...formData, maxPrice: e.target.value })}
-                                className="input-field"
-                                required
-                                min="0"
-                                step="0.01"
-                            />
-                            {product && (
-                                <p className="text-sm text-gray-500 mt-1">
-                                    Suggested: ${(product.currentPrice * 1.1).toFixed(2)} (10% above current price)
-                                </p>
-                            )}
-                        </div>
+                    {(product || formData.productId) && (
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            <div>
+                                <label htmlFor="minPrice" className="block text-sm font-medium text-gray-700 mb-1">
+                                    Minimum Price ($)
+                                </label>
+                                <input
+                                    type="number"
+                                    id="minPrice"
+                                    value={formData.minPrice}
+                                    onChange={(e) => setFormData({ ...formData, minPrice: e.target.value })}
+                                    className="input-field"
+                                    required
+                                    min="0"
+                                    step="0.01"
+                                />
+                                {product && (
+                                    <p className="text-sm text-gray-500 mt-1">
+                                        Suggested: ${(product.currentPrice * 0.9).toFixed(2)} (10% below current price)
+                                    </p>
+                                )}
+                            </div>
 
-                        <div>
-                            <label htmlFor="notificationType" className="block text-sm font-medium text-gray-700 mb-1">
-                                Notification Type
-                            </label>
-                            <select
-                                id="notificationType"
-                                value={formData.notificationType}
-                                onChange={(e) => setFormData({ ...formData, notificationType: e.target.value })}
-                                className="input-field"
-                            >
-                                <option value="email">Email</option>
-                                <option value="sms">SMS</option>
-                                <option value="both">Both</option>
-                            </select>
-                        </div>
+                            <div>
+                                <label htmlFor="maxPrice" className="block text-sm font-medium text-gray-700 mb-1">
+                                    Maximum Price ($)
+                                </label>
+                                <input
+                                    type="number"
+                                    id="maxPrice"
+                                    value={formData.maxPrice}
+                                    onChange={(e) => setFormData({ ...formData, maxPrice: e.target.value })}
+                                    className="input-field"
+                                    required
+                                    min="0"
+                                    step="0.01"
+                                />
+                                {product && (
+                                    <p className="text-sm text-gray-500 mt-1">
+                                        Suggested: ${(product.currentPrice * 1.1).toFixed(2)} (10% above current price)
+                                    </p>
+                                )}
+                            </div>
 
-                        <div className="flex space-x-4">
-                            <button
-                                type="submit"
-                                className="btn-primary flex-1"
-                                disabled={loading || !product}
-                            >
-                                {loading ? 'Creating Alert...' : 'Create Alert'}
-                            </button>
-                            <button
-                                type="button"
-                                className="btn-secondary"
-                                onClick={() => {
-                                    setShowForm(false);
-                                    navigate('/alerts');
-                                }}
-                            >
-                                Cancel
-                            </button>
-                        </div>
-                    </form>
+                            <div>
+                                <label htmlFor="notificationType" className="block text-sm font-medium text-gray-700 mb-1">
+                                    Notification Type
+                                </label>
+                                <select
+                                    id="notificationType"
+                                    value={formData.notificationType}
+                                    onChange={(e) => setFormData({ ...formData, notificationType: e.target.value })}
+                                    className="input-field"
+                                >
+                                    <option value="email">Email</option>
+                                    <option value="sms">SMS</option>
+                                    <option value="both">Both</option>
+                                </select>
+                            </div>
+
+                            <div className="flex space-x-4">
+                                <button
+                                    type="submit"
+                                    className="btn-primary flex-1"
+                                    disabled={loading || !product}
+                                >
+                                    {loading ? 'Creating Alert...' : 'Create Alert'}
+                                </button>
+                                <button
+                                    type="button"
+                                    className="btn-secondary"
+                                    onClick={() => {
+                                        setShowForm(false);
+                                        setProduct(null);
+                                        setFormData({
+                                            productId: '',
+                                            minPrice: '',
+                                            maxPrice: '',
+                                            notificationType: 'email'
+                                        });
+                                        navigate('/alerts');
+                                    }}
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </form>
+                    )}
                 </div>
             )}
 
