@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: price-tracker-api
+    env: docker
+    buildCommand: docker build -t price-tracker-api .
+    startCommand: docker run -p $PORT:5050 price-tracker-api
+    healthcheckPath: /
+    healthcheckTimeout: 100
+    envVars:
+      - key: PORT
+        sync: false
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false 
