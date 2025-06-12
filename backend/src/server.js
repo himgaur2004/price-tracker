@@ -9,17 +9,26 @@ const app = express();
 
 // CORS configuration
 app.use(cors({
-    origin: [
-        'https://price-tracker-nine-mu.vercel.app',
-        'http://localhost:5173',
-        'http://localhost:5174'
-    ],
+    origin: '*',  // Allow all origins in development
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true
 }));
 
 app.use(express.json());
+
+// Enhanced error logging middleware
+app.use((req, res, next) => {
+    const originalSend = res.send;
+    res.send = function (data) {
+        console.log(`${req.method} ${req.path} - Status: ${res.statusCode}`);
+        if (res.statusCode >= 400) {
+            console.error('Response Error:', data);
+        }
+        originalSend.call(this, data);
+    };
+    next();
+});
 
 // Root endpoint
 app.get('/', (req, res) => {
