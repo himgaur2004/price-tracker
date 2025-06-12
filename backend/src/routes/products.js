@@ -124,22 +124,43 @@ router.get('/', auth, async (req, res) => {
 
 // Add a new product
 router.post('/', auth, async (req, res) => {
+    console.log('Received product creation request:', {
+        body: req.body,
+        user: req.user,
+        headers: req.headers
+    });
+
     try {
         const { name, url, website, productIdentifier, category, brand } = req.body;
 
+        // Log the extracted fields
+        console.log('Extracted fields:', { name, url, website, productIdentifier, category, brand });
+
         // Validate required fields
         if (!name || !url || !website || !productIdentifier) {
+            console.log('Missing required fields:', {
+                name: !name,
+                url: !url,
+                website: !website,
+                productIdentifier: !productIdentifier
+            });
             return res.status(400).json({
                 message: 'Missing required fields. Please provide name, url, website, and productIdentifier.'
             });
         }
 
         // Extract price from the URL
+        console.log('Attempting to extract price from:', url);
         let currentPrice;
         try {
             currentPrice = await extractPrice(url, website);
+            console.log('Successfully extracted price:', currentPrice);
         } catch (error) {
-            console.error('Price extraction error:', error);
+            console.error('Price extraction error:', {
+                error: error.message,
+                url,
+                website
+            });
             return res.status(400).json({
                 message: 'Could not extract price from URL. Please verify the URL and try again.',
                 error: error.message
@@ -147,7 +168,7 @@ router.post('/', auth, async (req, res) => {
         }
 
         // Create new product with all fields
-        const product = new Product({
+        const productData = {
             name,
             url,
             website,
@@ -160,15 +181,23 @@ router.post('/', auth, async (req, res) => {
             lowestPrice: currentPrice,
             highestPrice: currentPrice,
             lastChecked: new Date()
-        });
+        };
+        console.log('Creating product with data:', productData);
 
+        const product = new Product(productData);
         await product.save();
+        console.log('Product saved successfully:', product);
+
         res.status(201).json(product);
     } catch (error) {
-        console.error('Product creation error:', error);
+        console.error('Product creation error:', {
+            error: error.message,
+            stack: error.stack
+        });
         res.status(500).json({
             message: 'Error creating product',
-            error: error.message
+            error: error.message,
+            stack: error.stack
         });
     }
 });

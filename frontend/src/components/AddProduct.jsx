@@ -27,12 +27,33 @@ function AddProduct() {
         e.preventDefault();
         setLoading(true);
 
+        // Log the form data being sent
+        console.log('Submitting form data:', formData);
+
         try {
-            await axios.post('/api/products', formData);
+            // Log the request being made
+            console.log('Making API request to:', axios.defaults.baseURL + '/api/products');
+
+            const response = await axios.post('/api/products', formData);
+            console.log('API Response:', response.data);
+
             toast.success('Product added successfully');
             navigate('/dashboard');
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Failed to add product');
+            console.error('API Error:', {
+                message: error.message,
+                response: error.response?.data,
+                status: error.response?.status
+            });
+
+            // Show more detailed error message
+            const errorMessage = error.response?.data?.message || error.message;
+            toast.error(`Failed to add product: ${errorMessage}`);
+
+            if (error.response?.data?.error) {
+                console.error('Detailed error:', error.response.data.error);
+                toast.error(`Error details: ${error.response.data.error}`);
+            }
         } finally {
             setLoading(false);
         }
