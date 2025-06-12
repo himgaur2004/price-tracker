@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import axios from '../config/axios';
+import { toast } from 'react-toastify';
 
 const LowestPriceProducts = () => {
     const [products, setProducts] = useState([]);
@@ -10,7 +11,7 @@ const LowestPriceProducts = () => {
         const fetchLowestPriceProducts = async () => {
             try {
                 console.log('Fetching products...');
-                const response = await axios.get('http://localhost:5050/api/products/lowest-price');
+                const response = await axios.get('/api/products/lowest-price');
                 console.log('API Response:', response.data);
                 setProducts(response.data);
                 setLoading(false);

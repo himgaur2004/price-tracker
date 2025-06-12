@@ -1,8 +1,6 @@
 const express = require('express');
 const auth = require('../middleware/auth');
 const Product = require('../models/Product');
-const cheerio = require('cheerio');
-const axios = require('axios');
 const { extractPrice } = require('../utils/priceExtractor');
 
 const router = express.Router();
@@ -10,105 +8,18 @@ const router = express.Router();
 // Helper function to add delay between retries
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-// Helper function to extract price from websites
-async function extractPrice(url, website, retries = 3) {
-    const headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5',
-        'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1',
-        'Cache-Control': 'max-age=0'
-    };
-
-    for (let attempt = 0; attempt < retries; attempt++) {
-        try {
-            const response = await axios.get(url, { headers });
-            const $ = cheerio.load(response.data);
-
-            let price = null;
-            if (website === 'amazon') {
-                // Try multiple Amazon price selectors
-                const selectors = [
-                    '#priceblock_ourprice',
-                    '.a-price-whole',
-                    '#price_inside_buybox',
-                    '#newBuyBoxPrice',
-                    '.a-offscreen'
-                ];
-
-                for (const selector of selectors) {
-                    const priceText = $(selector).first().text().trim();
-                    if (priceText) {
-                        price = priceText.replace(/[^0-9.]/g, '');
-                        break;
-                    }
-                }
-            } else if (website === 'flipkart') {
-                // Try multiple Flipkart price selectors
-                const selectors = [
-                    '._30jeq3._16Jk6d',
-                    '.dyC4hf',
-                    '._30jeq3',
-                    '.CEmiEU',
-                    '._2YxCDZ'
-                ];
-
-                for (const selector of selectors) {
-                    const priceText = $(selector).first().text().trim();
-                    if (priceText) {
-                        price = priceText.replace(/[^0-9.]/g, '');
-                        break;
-                    }
-                }
-            } else if (website === 'reliance') {
-                const selectors = ['.pdp__price'];
-                for (const selector of selectors) {
-                    const priceText = $(selector).first().text().trim();
-                    if (priceText) {
-                        price = priceText.replace(/[^0-9.]/g, '');
-                        break;
-                    }
-                }
-            } else if (website === 'croma') {
-                const selectors = ['.price', '.pd-price'];
-                for (const selector of selectors) {
-                    const priceText = $(selector).first().text().trim();
-                    if (priceText) {
-                        price = priceText.replace(/[^0-9.]/g, '');
-                        break;
-                    }
-                }
-            }
-
-            const parsedPrice = parseFloat(price);
-            if (parsedPrice) {
-                return parsedPrice;
-            }
-
-            // If we couldn't find a price, wait before retrying
-            await delay(Math.pow(2, attempt) * 1000); // Exponential backoff
-            continue;
-        } catch (error) {
-            console.error(`Attempt ${attempt + 1} failed:`, error.message);
-            if (attempt < retries - 1) {
-                await delay(Math.pow(2, attempt) * 1000); // Exponential backoff
-                continue;
-            }
-            throw new Error(`Failed to extract price after ${retries} attempts: ${error.message}`);
-        }
-    }
-    throw new Error('Could not extract price from the provided URL');
-}
-
 // Get lowest priced products
 router.get('/lowest-price', async (req, res) => {
     try {
+        console.log('Fetching lowest priced products...');
         const products = await Product.find()
             .sort({ currentPrice: 1 })
             .limit(10);
+
+        console.log(`Found ${products.length} products`);
         res.json(products);
     } catch (error) {
+        console.error('Error fetching lowest priced products:', error);
         res.status(500).json({ message: 'Error fetching lowest priced products', error: error.message });
     }
 });
@@ -211,18 +122,13 @@ router.post('/', auth, async (req, res) => {
             });
         }
 
-        // Extract price from the URL
-        console.log('Attempting to extract price from:', url);
+        // Extract price using the imported extractPrice function
         let currentPrice;
         try {
-            currentPrice = await extractPrice(url, website);
-            console.log('Successfully extracted price:', currentPrice);
+            const priceData = await extractPrice(url, website);
+            currentPrice = priceData.price;
         } catch (error) {
-            console.error('Price extraction error:', {
-                error: error.message,
-                url,
-                website
-            });
+            console.error('Price extraction error:', error);
             return res.status(400).json({
                 message: 'Could not extract price from URL. Please verify the URL and try again.',
                 error: error.message
