@@ -33,16 +33,21 @@ export default defineConfig({
         outDir: 'dist',
         sourcemap: false,
         rollupOptions: {
+            external: ['@mui/material'],
             output: {
-                manualChunks: {
-                    vendor: ['react', 'react-dom', 'react-router-dom'],
-                    ui: ['@mui/material', '@emotion/react', '@emotion/styled']
+                globals: {
+                    '@mui/material': 'MaterialUI'
                 }
             }
         },
         commonjsOptions: {
             include: [/node_modules/],
             transformMixedEsModules: true
+        }
+    },
+    resolve: {
+        alias: {
+            '@mui/material': '@mui/material/index.js'
         }
     }
 }); 
