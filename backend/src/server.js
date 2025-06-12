@@ -34,16 +34,17 @@ app.get('/health', (req, res) => {
 const connectDB = async (retries = 5) => {
     for (let i = 0; i < retries; i++) {
         try {
-            const mongoURI = process.env.MONGODB_URI;
-            if (!mongoURI) {
-                throw new Error('MONGODB_URI environment variable is not set');
-            }
             console.log('Attempting to connect to MongoDB...');
+
+            // Use direct connection string format
+            const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/buy-more';
+
             await mongoose.connect(mongoURI, {
-                useNewUrlParser: true,
-                useUnifiedTopology: true,
-                serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
+                serverSelectionTimeoutMS: 5000,
+                socketTimeoutMS: 45000,
+                family: 4 // Force IPv4
             });
+
             console.log('Connected to MongoDB successfully');
             return;
         } catch (err) {
