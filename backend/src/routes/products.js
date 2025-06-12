@@ -16,6 +16,10 @@ router.get('/lowest-price', async (req, res) => {
             .sort({ currentPrice: 1 })
             .limit(10);
 
+        if (!products || products.length === 0) {
+            return res.status(404).json({ message: 'No products found' });
+        }
+
         console.log(`Found ${products.length} products`);
         res.json(products);
     } catch (error) {
@@ -60,10 +64,7 @@ router.get('/compare', auth, async (req, res) => {
             return res.status(400).json({ message: 'Search query is required' });
         }
 
-        // Create a case-insensitive regex for the search query
         const searchRegex = new RegExp(query, 'i');
-
-        // Search for products across all platforms
         const products = await Product.find({
             $or: [
                 { name: searchRegex },
@@ -72,7 +73,6 @@ router.get('/compare', auth, async (req, res) => {
             ]
         }).sort({ currentPrice: 1 });
 
-        // Group products by website
         const groupedProducts = products.reduce((acc, product) => {
             if (!acc[product.website]) {
                 acc[product.website] = [];
@@ -81,7 +81,6 @@ router.get('/compare', auth, async (req, res) => {
             return acc;
         }, {});
 
-        // For each website, get the lowest priced product
         const lowestPrices = Object.values(groupedProducts).map(websiteProducts => {
             return websiteProducts.reduce((lowest, current) => {
                 return (!lowest || current.currentPrice < lowest.currentPrice) ? current : lowest;
@@ -97,26 +96,10 @@ router.get('/compare', auth, async (req, res) => {
 
 // Add a new product
 router.post('/', auth, async (req, res) => {
-    console.log('Received product creation request:', {
-        body: req.body,
-        user: req.user,
-        headers: req.headers
-    });
-
     try {
         const { name, url, website, productIdentifier, category, brand } = req.body;
 
-        // Log the extracted fields
-        console.log('Extracted fields:', { name, url, website, productIdentifier, category, brand });
-
-        // Validate required fields
         if (!name || !url || !website || !productIdentifier) {
-            console.log('Missing required fields:', {
-                name: !name,
-                url: !url,
-                website: !website,
-                productIdentifier: !productIdentifier
-            });
             return res.status(400).json({
                 message: 'Missing required fields. Please provide name, url, website, and productIdentifier.'
             });
@@ -127,6 +110,7 @@ router.post('/', auth, async (req, res) => {
         try {
             const priceData = await extractPrice(url, website);
             currentPrice = priceData.price;
+            console.log('Successfully extracted price:', currentPrice);
         } catch (error) {
             console.error('Price extraction error:', error);
             return res.status(400).json({
@@ -135,7 +119,6 @@ router.post('/', auth, async (req, res) => {
             });
         }
 
-        // Create new product with all fields
         const productData = {
             name,
             url,
@@ -144,28 +127,21 @@ router.post('/', auth, async (req, res) => {
             category,
             brand,
             currentPrice,
-            historicalPrices: [{ price: currentPrice }],
+            historicalPrices: [{ price: currentPrice, date: new Date() }],
             createdBy: req.user.userId,
             lowestPrice: currentPrice,
             highestPrice: currentPrice,
             lastChecked: new Date()
         };
-        console.log('Creating product with data:', productData);
 
         const product = new Product(productData);
         await product.save();
-        console.log('Product saved successfully:', product);
-
         res.status(201).json(product);
     } catch (error) {
-        console.error('Product creation error:', {
-            error: error.message,
-            stack: error.stack
-        });
+        console.error('Product creation error:', error);
         res.status(500).json({
             message: 'Error creating product',
-            error: error.message,
-            stack: error.stack
+            error: error.message
         });
     }
 });

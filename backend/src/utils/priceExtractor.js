@@ -44,42 +44,47 @@ const extractPrice = async (url, website) => {
                 break;
 
             default:
-                throw new Error('Unsupported website');
+                throw new Error(`Unsupported website: ${website}`);
         }
 
         if (!price) {
-            throw new Error('Could not extract price');
+            throw new Error(`Could not extract price from ${website}`);
+        }
+
+        const numericPrice = parseFloat(price.replace(/[^0-9.]/g, ''));
+        if (isNaN(numericPrice)) {
+            throw new Error(`Invalid price format: ${price}`);
         }
 
         return {
-            price: parseFloat(price),
-            name,
-            brand,
-            category
+            price: numericPrice,
+            name: name || '',
+            brand: brand || '',
+            category: category || ''
         };
     } catch (error) {
         console.error(`Error extracting price from ${website}:`, error);
-        throw error;
+        throw new Error(`Failed to extract price from ${website}: ${error.message}`);
     }
 };
 
 const extractAmazonPrice = ($) => {
-    const priceElement = $('#priceblock_ourprice, .a-price-whole').first();
+    const priceElement = $('#priceblock_ourprice, .a-price-whole, #price_inside_buybox').first();
     return priceElement.text().replace(/[^0-9.]/g, '');
 };
 
 const extractFlipkartPrice = ($) => {
-    const priceElement = $('._30jeq3._16Jk6d');
+    const priceElement = $('._30jeq3._16Jk6d, ._30jeq3');
     return priceElement.text().replace(/[^0-9.]/g, '');
 };
 
 const extractCromaPrice = ($) => {
-    const priceElement = $('.amount, .pd-price').first();
+    const priceElement = $('.amount, .pd-price, .price').first();
     return priceElement.text().replace(/[^0-9.]/g, '');
 };
 
 const extractMeeshoPrice = ($) => {
-    const priceElement = $('.ProductDetails__DiscountedPriceP-sc-1p3qgqh-3');
+    const priceElement = $('.ProductDetails__DiscountedPriceP-sc-1p3qgqh-3, .actual-price');
     return priceElement.text().replace(/[^0-9.]/g, '');
 };
 
