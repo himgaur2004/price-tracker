@@ -2,8 +2,6 @@ const nodemailer = require('nodemailer');
 const Product = require('../models/Product');
 const PriceAlert = require('../models/PriceAlert');
 const User = require('../models/User');
-const cheerio = require('cheerio');
-const axios = require('axios');
 const { extractPrice } = require('../utils/priceExtractor');
 
 // Email transporter setup
