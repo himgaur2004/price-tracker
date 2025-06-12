@@ -1,11 +1,17 @@
 import axios from 'axios';
 
-// Set base URL for all API requests
-const baseURL = import.meta.env.VITE_API_URL || 'https://web-production-81e32.up.railway.app';
-axios.defaults.baseURL = baseURL;
+const instance = axios.create({
+    baseURL: process.env.NODE_ENV === 'production'
+        ? 'https://web-production-81e32.up.railway.app'
+        : 'http://localhost:5050',
+    withCredentials: true,
+    headers: {
+        'Content-Type': 'application/json'
+    }
+});
 
-// Add request interceptor to include token
-axios.interceptors.request.use(
+// Add a request interceptor to add the token
+instance.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem('token');
         if (token) {
@@ -18,12 +24,11 @@ axios.interceptors.request.use(
     }
 );
 
-// Add response interceptor to handle auth errors
-axios.interceptors.response.use(
+// Add a response interceptor to handle errors
+instance.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response?.status === 401) {
-            // Clear token and redirect to login if unauthorized
             localStorage.removeItem('token');
             window.location.href = '/login';
         }
@@ -31,4 +36,4 @@ axios.interceptors.response.use(
     }
 );
 
-export default axios; 
+export default instance; 
