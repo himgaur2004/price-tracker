@@ -9,6 +9,9 @@
             }
         }
     ],
+    "env": {
+        "VITE_API_URL": "https://web-production-c7dc.up.railway.app"
+    },
     "rewrites": [
         {
             "source": "/api/(.*)",

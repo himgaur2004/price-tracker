@@ -1,7 +1,8 @@
 import axios from 'axios';
 
 // Set base URL for all API requests
-axios.defaults.baseURL = 'http://localhost:5050';
+const baseURL = import.meta.env.VITE_API_URL || 'https://web-production-c7dc.up.railway.app';
+axios.defaults.baseURL = baseURL;
 
 // Add request interceptor to include token
 axios.interceptors.request.use(
