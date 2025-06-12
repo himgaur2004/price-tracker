@@ -4,6 +4,7 @@ const PriceAlert = require('../models/PriceAlert');
 const User = require('../models/User');
 const cheerio = require('cheerio');
 const axios = require('axios');
+const { extractPrice } = require('../utils/priceExtractor');
 
 // Email transporter setup
 const transporter = nodemailer.createTransport({
@@ -13,44 +14,6 @@ const transporter = nodemailer.createTransport({
         pass: process.env.EMAIL_PASSWORD,
     },
 });
-
-// Helper function to extract price from websites
-async function extractPrice(url, website) {
-    try {
-        const headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        };
-        const response = await axios.get(url, { headers });
-        const $ = cheerio.load(response.data);
-
-        let price = null;
-        switch (website) {
-            case 'amazon':
-                price = $('#priceblock_ourprice, .a-price-whole').first().text().replace(/[^0-9.]/g, '');
-                break;
-            case 'flipkart':
-                price = $('._30jeq3._16Jk6d').text().replace(/[^0-9.]/g, '');
-                break;
-            case 'reliance':
-                price = $('.pdp__offerPrice').text().replace(/[^0-9.]/g, '');
-                break;
-            case 'croma':
-                price = $('.amount, .pd-price').first().text().replace(/[^0-9.]/g, '');
-                break;
-            case 'bazaar':
-                price = $('.discount-price').text().replace(/[^0-9.]/g, '');
-                break;
-            default:
-                console.log(`Unsupported website: ${website}`);
-                return null;
-        }
-
-        return parseFloat(price) || null;
-    } catch (error) {
-        console.error(`Error extracting price from ${website}:`, error);
-        return null;
-    }
-}
 
 // Send email notification for price changes and deals
 async function sendPriceAlert(user, product, alert, newPrice, bestDeals) {
