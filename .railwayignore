@@ -1,0 +1,10 @@
+.git
+.env
+.env.*
+node_modules
+frontend
+*.log
+.DS_Store
+README.md
+docs/
+tests/ 
