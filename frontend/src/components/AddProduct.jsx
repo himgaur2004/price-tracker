@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import axios from '../config/axios';
 import { toast } from 'react-toastify';
 
 function AddProduct() {
@@ -15,6 +15,15 @@ function AddProduct() {
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
+    // Check authentication on component mount
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            navigate('/login');
+            toast.error('Please login to add products');
+        }
+    }, [navigate]);
+
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({
@@ -23,17 +32,51 @@ function AddProduct() {
         }));
     };
 
+    const validateUrl = (url, website) => {
+        try {
+            const urlObj = new URL(url);
+            const domain = urlObj.hostname.toLowerCase();
+
+            const websiteDomains = {
+                amazon: ['amazon.com', 'amazon.in'],
+                flipkart: ['flipkart.com'],
+                reliance: ['reliancedigital.in'],
+                croma: ['croma.com'],
+                bazaar: ['bigbazaar.com']
+            };
+
+            if (!websiteDomains[website].some(d => domain.includes(d))) {
+                throw new Error(`URL does not match selected website. Please provide a valid ${website} URL.`);
+            }
+
+            return true;
+        } catch (error) {
+            if (error.message.includes('URL does not match')) {
+                throw error;
+            }
+            throw new Error('Please enter a valid URL');
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
 
-        // Log the form data being sent
-        console.log('Submitting form data:', formData);
-
         try {
-            // Log the request being made
-            console.log('Making API request to:', axios.defaults.baseURL + '/api/products');
+            // Validate URL matches selected website
+            validateUrl(formData.url, formData.website);
 
+            // Log the form data being sent
+            console.log('Submitting form data:', formData);
+
+            // Check authentication
+            const token = localStorage.getItem('token');
+            if (!token) {
+                throw new Error('Please login to add products');
+            }
+
+            // Make the API request
+            console.log('Making API request to:', axios.defaults.baseURL + '/api/products');
             const response = await axios.post('/api/products', formData);
             console.log('API Response:', response.data);
 
@@ -46,13 +89,20 @@ function AddProduct() {
                 status: error.response?.status
             });
 
-            // Show more detailed error message
-            const errorMessage = error.response?.data?.message || error.message;
-            toast.error(`Failed to add product: ${errorMessage}`);
+            // Handle different types of errors
+            if (error.message.includes('URL')) {
+                toast.error(error.message);
+            } else if (error.response?.status === 401) {
+                navigate('/login');
+                toast.error('Please login to continue');
+            } else {
+                const errorMessage = error.response?.data?.message || error.message;
+                toast.error(`Failed to add product: ${errorMessage}`);
 
-            if (error.response?.data?.error) {
-                console.error('Detailed error:', error.response.data.error);
-                toast.error(`Error details: ${error.response.data.error}`);
+                if (error.response?.data?.error) {
+                    console.error('Detailed error:', error.response.data.error);
+                    toast.error(`Error details: ${error.response.data.error}`);
+                }
             }
         } finally {
             setLoading(false);
@@ -137,22 +187,6 @@ function AddProduct() {
                     </div>
 
                     <div>
-                        <label htmlFor="url" className="block text-sm font-medium text-gray-700 mb-1">
-                            Product URL
-                        </label>
-                        <input
-                            type="url"
-                            id="url"
-                            name="url"
-                            value={formData.url}
-                            onChange={handleChange}
-                            className="input-field"
-                            required
-                            placeholder="https://www.amazon.com/product-url"
-                        />
-                    </div>
-
-                    <div>
                         <label htmlFor="website" className="block text-sm font-medium text-gray-700 mb-1">
                             Website
                         </label>
@@ -170,6 +204,25 @@ function AddProduct() {
                                 </option>
                             ))}
                         </select>
+                    </div>
+
+                    <div>
+                        <label htmlFor="url" className="block text-sm font-medium text-gray-700 mb-1">
+                            Product URL
+                        </label>
+                        <input
+                            type="url"
+                            id="url"
+                            name="url"
+                            value={formData.url}
+                            onChange={handleChange}
+                            className="input-field"
+                            required
+                            placeholder={`https://www.${formData.website}.com/product-url`}
+                        />
+                        <p className="text-sm text-gray-500 mt-1">
+                            Make sure the URL matches the selected website
+                        </p>
                     </div>
 
                     <button
@@ -190,6 +243,7 @@ function AddProduct() {
                     <li>• Product name should be clear and recognizable</li>
                     <li>• Select the correct website for accurate price tracking</li>
                     <li>• Adding brand and category helps with searching and filtering</li>
+                    <li>• Ensure the URL matches the selected website (e.g., Amazon URL for Amazon)</li>
                 </ul>
             </div>
         </div>
