@@ -7,6 +7,7 @@ import Dashboard from './components/Dashboard';
 import ProductList from './components/ProductList';
 import AddProduct from './components/AddProduct';
 import AlertList from './components/AlertList';
+import UserSettings from './components/UserSettings';
 import LowestPriceProducts from './components/LowestPriceProducts';
 import { useAuth } from './hooks/useAuth';
 
@@ -24,6 +25,7 @@ function App() {
                     <Route path="/products" element={isAuthenticated ? <ProductList /> : <Navigate to="/login" />} />
                     <Route path="/products/add" element={isAuthenticated ? <AddProduct /> : <Navigate to="/login" />} />
                     <Route path="/alerts" element={isAuthenticated ? <AlertList /> : <Navigate to="/login" />} />
+                    <Route path="/settings" element={isAuthenticated ? <UserSettings /> : <Navigate to="/login" />} />
                     <Route path="/lowest-prices" element={<LowestPriceProducts />} />
                     <Route path="/" element={<Navigate to="/lowest-prices" />} />
                 </Routes>

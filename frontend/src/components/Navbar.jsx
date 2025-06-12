@@ -28,6 +28,9 @@ function Navbar() {
                                 <Link to="/alerts" className="text-gray-700 hover:text-blue-600">
                                     Alerts
                                 </Link>
+                                <Link to="/settings" className="text-gray-700 hover:text-blue-600">
+                                    Settings
+                                </Link>
                                 <button
                                     onClick={logout}
                                     className="text-gray-700 hover:text-blue-600"
