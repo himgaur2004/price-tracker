@@ -14,6 +14,10 @@ export default defineConfig({
             }
         },
     },
+    define: {
+        'process.env.VITE_API_URL': JSON.stringify(process.env.VITE_API_URL || 'https://web-production-81e32.up.railway.app'),
+        'process.env.VITE_API_BASE_URL': JSON.stringify(process.env.VITE_API_BASE_URL || 'https://web-production-81e32.up.railway.app/api')
+    },
     esbuild: {
         loader: 'jsx',
         include: /\.[jt]sx?$/,

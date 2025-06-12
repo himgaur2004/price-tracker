@@ -12,7 +12,9 @@ const corsOptions = {
     origin: [
         'https://price-tracker-nine-mu.vercel.app',
         'https://price-tracker-frontend.vercel.app',
-        'https://buy-more.vercel.app'
+        'https://buy-more.vercel.app',
+        'http://localhost:5173',
+        'http://localhost:3000'
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],

@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const baseURL = 'https://price-tracker-nine-mu.vercel.app/api';
+const baseURL = process.env.NODE_ENV === 'production'
+    ? 'https://web-production-81e32.up.railway.app/api'
+    : 'http://localhost:5050/api';
 
 const api = axios.create({
     baseURL,
