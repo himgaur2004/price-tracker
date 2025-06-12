@@ -39,6 +39,10 @@ export default defineConfig({
                     ui: ['@mui/material', '@emotion/react', '@emotion/styled']
                 }
             }
+        },
+        commonjsOptions: {
+            include: [/node_modules/],
+            transformMixedEsModules: true
         }
     }
 }); 
