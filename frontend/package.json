@@ -5,7 +5,7 @@
     "type": "module",
     "scripts": {
         "dev": "vite",
-        "build": "vite build",
+        "build": "VITE_CJS_TRACE=true VITE_CJS_IGNORE_WARNING=true vite build",
         "vercel-build": "node build.js",
         "preview": "vite preview"
     },
@@ -31,5 +31,8 @@
         "postcss": "^8.4.35",
         "tailwindcss": "^3.4.1",
         "vite": "^5.1.4"
+    },
+    "engines": {
+        "node": ">=16.0.0"
     }
 }
