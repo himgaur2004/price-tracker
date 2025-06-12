@@ -14,6 +14,7 @@ const corsOptions = {
         'https://price-tracker-frontend.vercel.app',
         'https://buy-more.vercel.app',
         'https://price-tracker-ruddy-phi.vercel.app',
+        'https://price-tracker-himgaur2004s-projects.vercel.app',
         'http://localhost:5173',
         'http://localhost:3000'
     ],
@@ -29,6 +30,15 @@ const corsOptions = {
 // Apply CORS middleware before other middlewares
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions)); // Enable pre-flight for all routes
+
+// Additional CORS headers for all responses
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', req.headers.origin);
+    res.header('Access-Control-Allow-Credentials', true);
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Origin, Accept');
+    next();
+});
 
 // Parse JSON bodies
 app.use(express.json());

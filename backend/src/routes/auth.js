@@ -2,8 +2,31 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
+const cors = require('cors');
 
 const router = express.Router();
+
+// CORS configuration for auth routes
+const corsOptions = {
+    origin: [
+        'https://price-tracker-nine-mu.vercel.app',
+        'https://price-tracker-frontend.vercel.app',
+        'https://buy-more.vercel.app',
+        'https://price-tracker-ruddy-phi.vercel.app',
+        'https://price-tracker-himgaur2004s-projects.vercel.app',
+        'http://localhost:5173',
+        'http://localhost:3000'
+    ],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept'],
+    credentials: true
+};
+
+// Apply CORS for auth routes
+router.use(cors(corsOptions));
+
+// Handle preflight requests
+router.options('*', cors(corsOptions));
 
 router.post('/register', async (req, res) => {
     try {
