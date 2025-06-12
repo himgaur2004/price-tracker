@@ -34,19 +34,43 @@ function AlertList() {
 
     const fetchProductDetails = async () => {
         try {
-            const { data } = await axios.get(`/api/products/${formData.productId}`);
+            // Validate productId format
+            if (!formData.productId) {
+                toast.error('No product selected');
+                setShowForm(false);
+                navigate('/alerts');
+                return;
+            }
+
+            // Attempt to fetch the product
+            const { data } = await axios.get(`/api/products/${encodeURIComponent(formData.productId)}`);
+
+            if (!data) {
+                throw new Error('Product not found');
+            }
+
             setProduct(data);
+
             // Set initial price range based on current price
             if (data.currentPrice && !formData.minPrice && !formData.maxPrice) {
+                const minPrice = (data.currentPrice * 0.9).toFixed(2); // 10% below current price
+                const maxPrice = (data.currentPrice * 1.1).toFixed(2); // 10% above current price
+
                 setFormData(prev => ({
                     ...prev,
-                    minPrice: (data.currentPrice * 0.9).toFixed(2), // 10% below current price
-                    maxPrice: (data.currentPrice * 1.1).toFixed(2), // 10% above current price
+                    minPrice,
+                    maxPrice,
                 }));
+
+                // Force show form when product is loaded
+                setShowForm(true);
             }
         } catch (error) {
             console.error('Error fetching product:', error);
-            toast.error('Failed to load product details');
+            const errorMessage = error.response?.data?.message || error.message || 'Failed to load product details';
+            toast.error(errorMessage);
+            setShowForm(false);
+            navigate('/alerts');
         }
     };
 
@@ -155,15 +179,22 @@ function AlertList() {
                     <h2 className="text-lg font-semibold mb-4">
                         {product ? `Create Alert for ${product.name}` : 'Create New Alert'}
                     </h2>
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        {product && (
-                            <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-                                <p className="font-medium">{product.name}</p>
-                                <p className="text-sm text-gray-600">Current Price: ${product.currentPrice}</p>
-                                <p className="text-sm text-gray-600">Website: {product.website}</p>
+                    {product && (
+                        <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                            <h3 className="font-medium text-lg mb-2">{product.name}</h3>
+                            <div className="space-y-2">
+                                <p className="text-gray-600">Current Price: <span className="font-medium">${product.currentPrice}</span></p>
+                                <p className="text-gray-600">Website: <span className="font-medium capitalize">{product.website}</span></p>
+                                {product.brand && (
+                                    <p className="text-gray-600">Brand: <span className="font-medium">{product.brand}</span></p>
+                                )}
+                                {product.category && (
+                                    <p className="text-gray-600">Category: <span className="font-medium">{product.category}</span></p>
+                                )}
                             </div>
-                        )}
-
+                        </div>
+                    )}
+                    <form onSubmit={handleSubmit} className="space-y-4">
                         <div>
                             <label htmlFor="minPrice" className="block text-sm font-medium text-gray-700 mb-1">
                                 Minimum Price ($)
@@ -178,6 +209,11 @@ function AlertList() {
                                 min="0"
                                 step="0.01"
                             />
+                            {product && (
+                                <p className="text-sm text-gray-500 mt-1">
+                                    Suggested: ${(product.currentPrice * 0.9).toFixed(2)} (10% below current price)
+                                </p>
+                            )}
                         </div>
 
                         <div>
@@ -194,6 +230,11 @@ function AlertList() {
                                 min="0"
                                 step="0.01"
                             />
+                            {product && (
+                                <p className="text-sm text-gray-500 mt-1">
+                                    Suggested: ${(product.currentPrice * 1.1).toFixed(2)} (10% above current price)
+                                </p>
+                            )}
                         </div>
 
                         <div>
@@ -216,7 +257,7 @@ function AlertList() {
                             <button
                                 type="submit"
                                 className="btn-primary flex-1"
-                                disabled={loading}
+                                disabled={loading || !product}
                             >
                                 {loading ? 'Creating Alert...' : 'Create Alert'}
                             </button>

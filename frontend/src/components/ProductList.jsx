@@ -115,7 +115,7 @@ function ProductList() {
                                             Last checked: {new Date(product.lastChecked).toLocaleString()}
                                         </span>
                                         <Link
-                                            to={`/alerts/add?productId=${product._id}`}
+                                            to={`/alerts/add?productId=${encodeURIComponent(product._id)}`}
                                             className="text-sm text-blue-600 hover:underline"
                                         >
                                             Set Price Alert

@@ -61,13 +61,15 @@ function Dashboard() {
                     identifier: product.productIdentifier,
                     category: product.category,
                     brand: product.brand,
-                    prices: []
+                    prices: [],
+                    _id: product._id
                 };
             }
             grouped[product.productIdentifier].prices.push({
                 website: product.website,
                 price: product.currentPrice,
-                url: product.url
+                url: product.url,
+                _id: product._id
             });
         });
         return Object.values(grouped);
@@ -205,7 +207,7 @@ function Dashboard() {
                                         )}
                                     </div>
                                     <Link
-                                        to={`/alerts/add?productId=${product.identifier}`}
+                                        to={`/alerts/add?productId=${encodeURIComponent(product._id)}`}
                                         className="text-sm text-blue-600 hover:underline"
                                     >
                                         Set Price Alert
