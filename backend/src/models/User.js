@@ -8,6 +8,7 @@ const userSchema = new mongoose.Schema({
         unique: true,
         trim: true,
         lowercase: true,
+        match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email address']
     },
     password: {
         type: String,
@@ -16,7 +17,8 @@ const userSchema = new mongoose.Schema({
     },
     name: {
         type: String,
-        required: true,
+        trim: true,
+        default: '',
     },
     phone: {
         type: String,
@@ -35,7 +37,11 @@ userSchema.pre('save', async function (next) {
     const user = this;
 
     if (user.isModified('password')) {
-        user.password = await bcrypt.hash(user.password, 10);
+        try {
+            user.password = await bcrypt.hash(user.password, 10);
+        } catch (error) {
+            return next(error);
+        }
     }
 
     next();
