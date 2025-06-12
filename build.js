@@ -5,8 +5,11 @@ const { execSync } = require('child_process');
 // Build frontend
 console.log('Building frontend...');
 try {
+    // Change to frontend directory
     process.chdir(path.join(__dirname, 'frontend'));
-    execSync('npm install', { stdio: 'inherit' });
+    console.log('Installing frontend dependencies...');
+    execSync('npm install --force', { stdio: 'inherit' });
+    console.log('Building frontend...');
     execSync('npm run build', { stdio: 'inherit' });
     process.chdir(__dirname);
     console.log('Frontend build completed successfully');
@@ -58,7 +61,11 @@ function copyDir(src, dest) {
 
 try {
     copyDir(frontendDistDir, publicDir);
-    console.log('Build completed successfully - files copied to public directory');
+
+    // Create a _redirects file for SPA routing
+    const redirectsPath = path.join(publicDir, '_redirects');
+    fs.writeFileSync(redirectsPath, '/* /index.html 200');
+    console.log('Created _redirects file for SPA routing');
 
     console.log('\nContents of public directory:');
     const publicContents = fs.readdirSync(publicDir, { withFileTypes: true });

@@ -16,6 +16,10 @@
         {
             "source": "/api/(.*)",
             "destination": "https://web-production-c7dc.up.railway.app/api/$1"
+        },
+        {
+            "source": "/(.*)",
+            "destination": "/index.html"
         }
     ],
     "headers": [
