@@ -36,13 +36,13 @@ const connectDB = async (retries = 5) => {
         try {
             console.log('Attempting to connect to MongoDB...');
 
-            // Use direct connection string format
-            const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/buy-more';
+            // Use the new MongoDB connection string
+            const mongoURI = process.env.MONGODB_URI || 'mongodb+srv://ishagauravsingh:Tt85U4rsCKjb7p1A@buy.tms55zj.mongodb.net/buy-more';
 
             await mongoose.connect(mongoURI, {
                 serverSelectionTimeoutMS: 5000,
                 socketTimeoutMS: 45000,
-                family: 4 // Force IPv4
+                family: 4
             });
 
             console.log('Connected to MongoDB successfully');
