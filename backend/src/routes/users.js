@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
+const { sendTestEmail } = require('../utils/emailService');
 const router = express.Router();
 
 // Register User
@@ -125,7 +126,18 @@ router.patch('/settings', auth, async (req, res) => {
                 console.log('Settings update failed: Email already in use:', email);
                 return res.status(400).json({ message: 'Email already in use' });
             }
-            user.email = email;
+
+            // Send test email to new address
+            try {
+                await sendTestEmail(email);
+                user.email = email;
+            } catch (emailError) {
+                console.error('Failed to send test email:', emailError);
+                return res.status(400).json({
+                    message: 'Could not verify email address. Please check the email and try again.',
+                    error: emailError.message
+                });
+            }
         }
 
         // Update phone if provided
