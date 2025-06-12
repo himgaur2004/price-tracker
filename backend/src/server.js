@@ -13,16 +13,24 @@ const corsOptions = {
         'https://price-tracker-nine-mu.vercel.app',
         'https://price-tracker-frontend.vercel.app',
         'https://buy-more.vercel.app',
+        'https://price-tracker-ruddy-phi.vercel.app',
         'http://localhost:5173',
         'http://localhost:3000'
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept'],
+    exposedHeaders: ['Content-Length', 'X-Requested-With'],
     credentials: true,
-    maxAge: 86400 // 24 hours
+    maxAge: 86400, // 24 hours
+    preflightContinue: false,
+    optionsSuccessStatus: 204
 };
 
+// Apply CORS middleware before other middlewares
 app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // Enable pre-flight for all routes
+
+// Parse JSON bodies
 app.use(express.json());
 
 // Request logging middleware
