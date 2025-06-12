@@ -19,10 +19,10 @@ A web application that tracks prices from various e-commerce websites (currently
   - Axios
 
 - Backend:
-  - Node.js
+- Node.js
   - Express
   - MongoDB
-  - JWT Authentication
+- JWT Authentication
 
 ## Getting Started
 
